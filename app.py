@@ -66,6 +66,7 @@ if page == "Dashboard Overview":
 
     with c1:
         st.subheader("Issue Analysis by Sensor Type")
+        # Filter only failed/issue sites for analysis
         issue_df = df[df['Issue Sensors'] != 'None']
         if not issue_df.empty:
             fig_sensor = px.pie(issue_df, names='Issue Sensors', title='Distribution of Faulty Sensors')
@@ -75,6 +76,7 @@ if page == "Dashboard Overview":
 
     with c2:
         st.subheader("WMS-1 vs WMS-2 Failure Analysis")
+        # Compare WMS types involved in failures
         if not issue_df.empty:
             fig_wms = px.histogram(issue_df, x='WMS_Type', color='Validation Report', barmode='group', title="Failures by WMS Type")
             st.plotly_chart(fig_wms, use_container_width=True)
@@ -96,15 +98,19 @@ if page == "Dashboard Overview":
 elif page == "Site Validation & Search":
     st.title("🔍 Site Validation Details")
     
+    # Search Section
     st.subheader("Search Records")
     search_term = st.text_input("Search by Site Name, Sensor, or WMS Type", placeholder="Type to search...")
     
+    # Filter Logic
     if search_term:
+        # Create a boolean mask for case-insensitive search
         mask = df.apply(lambda row: row.astype(str).str.contains(search_term, case=False).any(), axis=1)
         filtered_df = df[mask]
     else:
         filtered_df = df
 
+    # Display Data Table
     st.dataframe(
         filtered_df, 
         use_container_width=True,
@@ -116,6 +122,7 @@ elif page == "Site Validation & Search":
     
     st.markdown("---")
 
+    # Add New Record Section
     with st.expander("➕ Add New Site Record"):
         with st.form("add_record_form"):
             col1, col2 = st.columns(2)
@@ -124,7 +131,7 @@ elif page == "Site Validation & Search":
                 new_val = st.selectbox("Validation Report", ["Validated", "Failed", "Pending"])
                 new_wms = st.selectbox("WMS Type", ["WMS-1", "WMS-2"])
             with col2:
-                new_sensor = st.text_input("Issue Sensors")
+                new_sensor = st.text_input("Issue Sensors (e.g., Temp Sensor)")
                 new_issue_desc = st.text_input("Issue Description")
                 submitted = st.form_submit_button("Save Record")
 
@@ -139,14 +146,16 @@ elif page == "Site Validation & Search":
                         'Issue_Description': new_issue_desc if new_issue_desc else "No Issues",
                         'Date_Logged': datetime.today().strftime('%Y-%m-%d')
                     }
+                    # Append new data (No need for global keyword here)
                     new_row = pd.DataFrame([new_data])
                     df = pd.concat([df, new_row], ignore_index=True)
                     save_data(df)
                     st.success(f"Record for {new_site} saved successfully!")
-                    st.rerun()
+                    st.rerun() # Refresh page to show new data
                 else:
                     st.error("Site Name is required.")
 
+    # Delete Functionality
     st.subheader("⚠️ Manage Data")
     site_to_delete = st.selectbox("Select Site to Delete", df['Site Name'].unique())
     if st.button("Delete Selected Site"):
